@@ -72,7 +72,7 @@ fun main(args : Array<String>) {
             val unitType = input.nextInt() // -1 = QUEEN, 0 = KNIGHT, 1 = ARCHER
             val health = input.nextInt()
 
-            if (owner == 1) {
+            if (owner == 0) {
                 when (unitType) {
                     -1 -> {
                         queen.x = x
@@ -89,10 +89,10 @@ fun main(args : Array<String>) {
                 .minBy { it.value }
 
 
-        val touched = siteMap.filter { it.value.isTouch }[0]
+        val touched = siteMap.filter { it.value.isTouch && it.value.type == SiteType.EMPTY }.keys.firstOrNull()
 
         when {
-            touched != null -> println("BUILD ${touched.id} BARRACKS-KNIGHT")
+            touched != null -> println("BUILD $touched BARRACKS-KNIGHT")
             nearestEmptySite != null -> {
                 val targetSite = siteMap[nearestEmptySite.key]
                 println("MOVE ${targetSite?.x} ${targetSite?.y}")
@@ -102,10 +102,16 @@ fun main(args : Array<String>) {
 
         val training = siteMap.values
                 .filter { it.type == SiteType.BARRACKS && it.cooldown == 0 }
-                .map { it.id.toString() }
-                .joinToString { " " }
+                .takeLast(gold / 80)
+                .joinToString(separator = " ") { it.id.toString() }
 
-        println("TRAIN $training")
+        val trainResult = if (training.isBlank()) {
+            "TRAIN"
+        } else {
+            "TRAIN $training"
+        }
+
+        println(trainResult)
     }
 }
 
