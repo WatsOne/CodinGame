@@ -1,18 +1,23 @@
 import java.util.*
-import java.io.*
 import java.lang.Math.sqrt
 
 const val HEIGHT = 1000
 const val WIDTH = 1920
 
-enum class SiteType {
-    EMPTY, BARRACKS, ENEMY_BARRACKS
+enum class BuildType {
+    EMPTY, TOWER, KNIGHT, ARCHER, GIANT;
+
+    fun isBarracks(): Boolean {
+        return this != EMPTY && this != TOWER
+    }
 }
 
 class Site(val id: Int, x: Int, y: Int, r: Int,
-           var cooldown: Int = Int.MAX_VALUE,
+           var coolDown: Int = Int.MAX_VALUE,
+           var attackR: Int = 0,
            var isTouch: Boolean = false,
-           var type: SiteType = SiteType.EMPTY) : GameObject(x, y, r)
+           var isMy: Boolean = false,
+           var type: BuildType = BuildType.EMPTY) : GameObject(x, y, r)
 
 open class GameObject(var x: Int, var y: Int, val r: Int)
 open class GameUnit(x: Int, y: Int, r: Int, var health: Int) : GameObject(x, y, r)
@@ -50,19 +55,23 @@ fun main(args : Array<String>) {
             val param1 = input.nextInt()
             val param2 = input.nextInt()
 
-            siteMap[siteId]?.cooldown = param1
-            if (owner == 0) {
-                siteMap[siteId]?.type = when (structureType) {
-                    2 -> SiteType.BARRACKS
-                    else -> SiteType.EMPTY
-                }
-            } else if (owner == 1) {
-                siteMap[siteId]?.type = when (structureType) {
-                    2 -> SiteType.ENEMY_BARRACKS
-                    else -> SiteType.EMPTY
-                }
-            }
+            siteMap[siteId]?.coolDown = param1
+            siteMap[siteId]?.isMy = owner == 0
 
+            when (structureType) {
+                1 -> {
+                    siteMap[siteId]?.type = BuildType.TOWER
+                    siteMap[siteId]?.attackR = param2
+                }
+                2 -> {
+                    siteMap[siteId]?.type = when (param2) {
+                        0 -> BuildType.KNIGHT
+                        1 -> BuildType.ARCHER
+                        else -> BuildType.GIANT
+                    }
+                }
+                else -> siteMap[siteId]?.type = BuildType.EMPTY
+            }
         }
         val numUnits = input.nextInt()
         for (i in 0 until numUnits) {
@@ -84,15 +93,15 @@ fun main(args : Array<String>) {
         }
 
         val nearestEmptySite = siteMap
-                .filter { it.value.type == SiteType.EMPTY && !it.value.isTouch }
+                .filter { it.value.type == BuildType.EMPTY && !it.value.isTouch }
                 .mapValues { dist(queen, it.value) }
                 .minBy { it.value }
 
 
-        val touched = siteMap.filter { it.value.isTouch && it.value.type == SiteType.EMPTY }.keys.firstOrNull()
+        val touched = siteMap.filter { it.value.isTouch && it.value.type == BuildType.EMPTY }.keys.firstOrNull()
 
         when {
-            touched != null -> println("BUILD $touched BARRACKS-KNIGHT")
+            touched != null -> println("")
             nearestEmptySite != null -> {
                 val targetSite = siteMap[nearestEmptySite.key]
                 println("MOVE ${targetSite?.x} ${targetSite?.y}")
@@ -101,7 +110,7 @@ fun main(args : Array<String>) {
         }
 
         val training = siteMap.values
-                .filter { it.type == SiteType.BARRACKS && it.cooldown == 0 }
+                .filter { it.type.isBarracks() && it.coolDown == 0 }
                 .takeLast(gold / 80)
                 .joinToString(separator = " ") { it.id.toString() }
 
@@ -119,4 +128,11 @@ fun dist(from: GameObject, to: GameObject): Double {
     val dx = (to.x - from.x).toDouble()
     val dy = (to.y - from.y).toDouble()
     return sqrt(dx*dx + dy*dy)
+}
+
+fun build(siteIt: Int, type: BuildType): String {
+    return when (type) {
+        BuildType.TOWER -> "BUILD $siteIt TOWER"
+        else -> "BUILD $siteIt BARRACKS-${type.name}"
+    }
 }
